@@ -1,0 +1,510 @@
+:root {
+  --bg: #f4f3ef;
+  --surface: #ffffff;
+  --surface-2: #ebe9e3;
+  --text: #22211e;
+  --muted: #6f6c64;
+  --border: #d9d6ce;
+  --accent: #5b5bd6;
+  --danger: #c4372f;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 2px 6px rgb(0 0 0 / 0.04);
+
+  --c-red: #c4372f;
+  --c-orange: #c4621d;
+  --c-yellow: #a07d00;
+  --c-green: #2f8a4c;
+  --c-teal: #13817a;
+  --c-blue: #2f6bc4;
+  --c-purple: #7b4fc4;
+  --c-pink: #c23f84;
+  --c-gray: #75726a;
+
+  color-scheme: light;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #18181b;
+    --surface: #232327;
+    --surface-2: #2c2c31;
+    --text: #e9e7e2;
+    --muted: #9c9a93;
+    --border: #3a3a40;
+    --accent: #8b8bf0;
+    --danger: #ef6b62;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+    --c-red: #ef6b62;
+    --c-orange: #ee9150;
+    --c-yellow: #e0c04a;
+    --c-green: #62c482;
+    --c-teal: #4cc4bb;
+    --c-blue: #6ea2ef;
+    --c-purple: #ad8bf0;
+    --c-pink: #ee7cb6;
+    --c-gray: #a8a59e;
+
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+button:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+button.primary:hover {
+  background: var(--accent);
+  filter: brightness(1.1);
+}
+button.danger {
+  color: var(--danger);
+}
+button.ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+button.icon {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 2px 5px;
+  line-height: 1;
+}
+
+input,
+select,
+textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.92em;
+  background: var(--surface-2);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Layout ------------------------------------------------------------------------------------- */
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-wrap: wrap;
+}
+.brand {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0 8px 0 0;
+}
+
+.board-description {
+  padding: 8px 16px 0;
+  color: var(--muted);
+  max-width: 80ch;
+}
+
+.board {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.empty {
+  margin: 15vh auto;
+  text-align: center;
+  max-width: 420px;
+  padding: 0 16px;
+}
+
+/* Columns ------------------------------------------------------------------------------------ */
+
+.column {
+  flex: 0 0 280px;
+  max-width: calc(100vw - 32px);
+  background: var(--surface-2);
+  border-radius: 8px;
+  border-top: 3px solid transparent;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100vh - 90px);
+}
+
+.column-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+}
+.column-header h2 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+  cursor: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.count {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.count.over {
+  color: var(--danger);
+  font-weight: 600;
+}
+.column-actions {
+  margin-left: auto;
+  display: flex;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.column:hover .column-actions,
+.column-actions:focus-within {
+  opacity: 1;
+}
+@media (hover: none) {
+  .column-actions {
+    opacity: 1;
+  }
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 24px;
+  overflow-y: auto;
+}
+
+.add-card {
+  text-align: left;
+}
+
+.add-column {
+  flex: 0 0 200px;
+}
+
+.inline-input {
+  width: 100%;
+}
+
+/* Cards -------------------------------------------------------------------------------------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  box-shadow: var(--shadow);
+  cursor: grab;
+}
+.card:hover {
+  border-color: var(--muted);
+}
+.card.overlay {
+  cursor: grabbing;
+  transform: rotate(1.5deg);
+}
+.card h3 {
+  font-size: 13.5px;
+  font-weight: 500;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 11.5px;
+}
+.tag {
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 0 7px;
+}
+.due,
+.progress {
+  color: var(--muted);
+  padding: 0 2px;
+}
+.due.overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* Modal -------------------------------------------------------------------------------------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.4);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 8vh 16px;
+  overflow-y: auto;
+  z-index: 10;
+}
+.modal {
+  background: var(--surface);
+  border-radius: 10px;
+  width: 100%;
+  max-width: 640px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.25);
+}
+.title-input {
+  font-size: 18px;
+  font-weight: 600;
+  border-color: transparent;
+  padding: 4px 6px;
+  margin: -4px -6px 0;
+}
+.title-input:hover {
+  border-color: var(--border);
+}
+.file-path {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.file-path a {
+  color: var(--accent);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 170px;
+  gap: 10px;
+}
+@media (max-width: 480px) {
+  .fields {
+    grid-template-columns: 1fr;
+  }
+}
+.fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.fields input {
+  color: var(--text);
+}
+
+.other-props {
+  margin: 0;
+  font-size: 12px;
+  display: grid;
+  gap: 2px;
+}
+.other-props div {
+  display: flex;
+  gap: 8px;
+}
+.other-props dt {
+  color: var(--muted);
+  min-width: 90px;
+}
+.other-props dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.body-tabs {
+  display: flex;
+  gap: 4px;
+}
+.body-tabs button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 3px 8px;
+}
+.body-tabs button.active {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.body-editor,
+.body-preview {
+  min-height: 220px;
+}
+.body-editor {
+  width: 100%;
+  resize: vertical;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+}
+.body-preview {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+}
+
+.markdown a {
+  color: var(--accent);
+}
+.markdown ul:has(> li > input[type="checkbox"]) {
+  list-style: none;
+  padding-left: 4px;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.spacer {
+  flex: 1;
+}
+
+.toast {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  background: var(--danger);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  z-index: 20;
+}
+
+/* Schema issues ------------------------------------------------------------------------------ */
+
+.card-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.card-title h3 {
+  flex: 1;
+}
+.issue-badge {
+  color: var(--c-orange);
+  cursor: help;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.issues {
+  font-size: 12.5px;
+  border: 1px solid var(--c-orange);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.issues ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.field-error {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--danger);
+}
+
+/* Wikilinks ---------------------------------------------------------------------------------- */
+
+.wikilink {
+  font: inherit;
+  border: none;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+button.wikilink:hover:not(:disabled) {
+  background: none;
+}
+span.wikilink {
+  cursor: help;
+}
+.wikilink.note {
+  color: var(--text);
+  text-decoration-style: dotted;
+}
+.wikilink.missing {
+  color: var(--muted);
+  text-decoration-style: dashed;
+}
