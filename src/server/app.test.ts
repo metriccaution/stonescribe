@@ -20,6 +20,16 @@ beforeEach(async () => {
 afterEach(() => rm(root, { recursive: true, force: true }));
 
 describe("API", () => {
+  it("reports health", async () => {
+    const res = await request(app).get("/api/health").expect(200);
+    expect(res.body).toEqual({ status: "ok" });
+  });
+
+  it("reports unhealthy when the vault is gone", async () => {
+    await rm(root, { recursive: true, force: true });
+    await request(app).get("/api/health").expect(503);
+  });
+
   it("returns typed props and issues for cards", async () => {
     const res = await request(app).get("/api/board?board=B").expect(200);
     expect(res.body.columns[0].cards[0]).toMatchObject({

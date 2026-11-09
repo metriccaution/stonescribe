@@ -12,7 +12,19 @@ npm start -- /path/to/vault        # or STONESCRIBE_VAULT=/path/to/vault npm sta
 
 Then open <http://127.0.0.1:3001>. Set `PORT` / `HOST` to change where it listens (use `HOST=0.0.0.0` inside a container).
 
-For development, run `npm run dev` (uses `./example-vault`; set `STONESCRIBE_VAULT` to point it elsewhere). This starts the API with reload-on-change and the Vite dev server on <http://localhost:5173>.
+## Docker
+
+```yaml
+services:
+  stonescribe:
+    image: ghcr.io/metriccaution/stonescribe:latest
+    ports:
+      - "3001:3001"
+    volumes:
+      - /path/to/vault:/vault
+    user: "1000:1000" # uid:gid that owns the vault on the host
+    restart: unless-stopped
+```
 
 ## Vault layout
 
@@ -100,6 +112,8 @@ Notes are linked with `[[wikilinks]]`. The format is shared by Obsidian, Foam, L
 - **Renames update links:** renaming a card rewrites `[[Old]]`, `[[Old|alias]]`, `[[Old#heading]]` and path-qualified links across the vault. Moving a card between columns doesn't touch the file's name or location, so every link keeps working.
 
 ## Development
+
+For development, run `npm run dev` (uses `./example-vault`; set `STONESCRIBE_VAULT` to point it elsewhere). This starts the API with reload-on-change and the Vite dev server on <http://localhost:5173>.
 
 ```bash
 npm test            # vitest: frontmatter round-tripping and vault operations

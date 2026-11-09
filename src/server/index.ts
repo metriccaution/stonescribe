@@ -22,7 +22,8 @@ const port = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? "127.0.0.1";
 
 const vault = new Vault(vaultPath);
-const app = createApp(vault, new VaultWatcher(vault.root));
+const watcher = new VaultWatcher(vault.root);
+const app = createApp(vault, watcher);
 
 // In production, serve the built client from dist/client.
 const clientDir = path.resolve(
@@ -36,8 +37,19 @@ if (existsSync(clientDir)) {
   );
 }
 
-app.listen(port, host, () => {
+const server = app.listen(port, host, () => {
   console.log(
     `Stonescribe serving vault ${vault.root} on http://${host}:${port}`,
   );
 });
+
+const shutdown = (signal: string) => {
+  console.log(`Received ${signal}, shutting down`);
+  watcher.close();
+  server.close(() => process.exit(0));
+  // Open event streams (/api/events) never end on their own.
+  server.closeAllConnections();
+  setTimeout(() => process.exit(1), 5000).unref();
+};
+process.once("SIGTERM", () => shutdown("SIGTERM"));
+process.once("SIGINT", () => shutdown("SIGINT"));

@@ -1,0 +1,11 @@
+# Keep the build context small and reproducible: dependencies and build output are
+# produced inside the image, and the vault is mounted at runtime.
+.git
+.github
+node_modules
+dist
+example-vault
+*.log
+.DS_Store
+Dockerfile
+.dockerignore

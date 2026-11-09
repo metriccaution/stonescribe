@@ -1,3 +1,4 @@
+import { access, constants } from "node:fs/promises";
 import express, {
   type NextFunction,
   type Request,
@@ -22,6 +23,17 @@ export function createApp(
 ): express.Express {
   const app = express();
   app.use(express.json());
+
+  // Liveness/readiness probe (used by the Docker HEALTHCHECK): cheap, and fails if the vault
+  // is no longer readable and writable (e.g. a volume that went away).
+  app.get("/api/health", async (_req, res) => {
+    try {
+      await access(vault.root, constants.R_OK | constants.W_OK);
+      res.json({ status: "ok" });
+    } catch {
+      res.status(503).json({ status: "unavailable", error: "Vault is not accessible" });
+    }
+  });
 
   app.get("/api/boards", async (_req, res) => {
     res.json(await vault.listBoards());

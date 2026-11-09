@@ -1,0 +1,10 @@
+# Runs Stonescribe against ./example-vault — the same vault `npm run dev` uses.
+services:
+  stonescribe:
+    build: .
+    image: stonescribe:local
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./example-vault:/vault
+    user: "${UID:-1000}:${GID:-1000}"
