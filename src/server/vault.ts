@@ -347,9 +347,11 @@ export class Vault {
 
   /**
    * Moves a card to `index` within `toColumn` (which may be its current column) by setting its
-   * `column` property; the file stays where it is. Renumbers `order` on only the cards in the
-   * target column whose position actually changed. Moving to another column counts as editing the
-   * card; renumbering and reordering within a column don't.
+   * `column` property; the file stays where it is. Orders are sparse, so usually only the moved
+   * card is written: it gets an `order` between its new neighbours (see `slotOrder`). When no
+   * tidy value fits, the target column is renumbered `1..n`, writing only cards whose `order`
+   * changed. Moving to another column counts as editing the card; renumbering and reordering
+   * within a column don't.
    */
   async moveCard(
     boardPath: string,
@@ -367,9 +369,20 @@ export class Vault {
       (moved.props.column !== undefined && moved.props.column !== toColumn);
 
     const cards = target.cards.filter((c) => c !== moved);
-    cards.splice(Math.max(0, Math.min(index, cards.length)), 0, moved);
-
+    const at = Math.max(0, Math.min(index, cards.length));
     const updatedAt = formatDateTime(new Date());
+
+    const order = slotOrder(cards[at - 1], cards[at], moved.props.order);
+    if (order !== undefined) {
+      await writeTyped(this.resolve(moved.path), cardSchema, {
+        ...(setColumn && { column: toColumn }),
+        order,
+        ...(changedColumn && { updatedAt }),
+      });
+      return;
+    }
+
+    cards.splice(at, 0, moved);
     for (const [i, card] of cards.entries()) {
       const isMoved = card === moved;
       if (card.props.order !== i + 1 || (isMoved && setColumn)) {
@@ -634,6 +647,33 @@ function validateColumnName(name: string): void {
 
 function nextOrder(items: { props: { order?: number } }[]): number {
   return Math.max(0, ...items.map((i) => i.props.order ?? 0)) + 1;
+}
+
+/**
+ * An `order` that sorts a card between `prev` and `next` (either may be absent at the ends of a
+ * column), or `undefined` if the column needs renumbering. Keeps `current` if it already fits.
+ * Prefers integers: one below the top, one above the bottom, or the first integer in a gap,
+ * falling back to the midpoint while it stays within 3 decimal places.
+ */
+function slotOrder(
+  prev: { props: { order?: number } } | undefined,
+  next: { props: { order?: number } } | undefined,
+  current: number | undefined,
+): number | undefined {
+  // Unordered cards sort after every ordered one, so nothing can be slotted in after one.
+  if (prev && prev.props.order === undefined) return undefined;
+  const lo = prev?.props.order;
+  const hi = next?.props.order;
+  const fits = (n: number) =>
+    (lo === undefined || n > lo) && (hi === undefined || n < hi);
+
+  if (current !== undefined && fits(current)) return current;
+  if (lo === undefined && hi === undefined) return 1;
+  if (lo === undefined) return Math.ceil(hi!) - 1;
+  if (hi === undefined) return Math.floor(lo) + 1;
+  if (Math.floor(lo) + 1 < hi) return Math.floor(lo) + 1;
+  const mid = (lo + hi) / 2;
+  return fits(mid) && Math.round(mid * 1000) / 1000 === mid ? mid : undefined;
 }
 
 /** Items with a numeric `order` come first, ascending; the rest follow alphabetically. */

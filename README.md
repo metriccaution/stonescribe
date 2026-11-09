@@ -102,7 +102,7 @@ Frontmatter properties:
 - `created` - date-time Stonescribe created the note at, e.g. `2025-01-22T00:00:00`
 - `updatedAt`- date-time Stonescribe last updated the note, e.g. `2025-01-22T00:00:00`
 - `due`- date-time for due date, e.g. `2025-01-22T00:00:00`
-- `order` - Card sorting within a column
+- `order` - Card sorting within a column, lowest first. Any number works, including negatives and decimals. A drag usually rewrites only the dragged card's `order`.
 
 ## Links
 

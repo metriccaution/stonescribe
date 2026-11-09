@@ -1,10 +1,10 @@
 ---
 tags:
   - feature
-column: Backlog
+column: Done
 created: 2026-11-09T16:41:28
-updatedAt: 2026-11-09T16:52:38
-order: 1
+updatedAt: 2026-11-09T19:05:00
+order: -1
 ---
 # Minimising DND Diffs
 
@@ -27,6 +27,6 @@ When I drag something across from one column into another, I'll _usually_ move i
 
 ## Done when
 
-- [ ] Moving a card to the top, bottom or middle of another column writes exactly one file in the common case
-- [ ] Reordering within a column writes exactly one file in the common case
-- [ ] Tests in `src/server/vault.test.ts` cover the fallback renumbering
+- [x] Moving a card to the top, bottom or middle of another column writes exactly one file in the common case
+- [x] Reordering within a column writes exactly one file in the common case
+- [x] Tests in `src/server/vault.test.ts` cover the fallback renumbering

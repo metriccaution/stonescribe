@@ -296,17 +296,12 @@ describe("cards", () => {
     await vault.createCard("B", "Doing", { name: "X" });
     await vault.createCard("B", "Doing", { name: "Y" });
     await write("B/sub/Z.md", "---\ncolumn: Doing\norder: 3\n---\n");
-    const before = await read("B/X.md");
 
     await vault.moveCard("B", "A", "Doing", 1);
 
     expect(await cardNames("B", "Todo")).toEqual([]);
     expect(await cardNames("B", "Doing")).toEqual(["X", "A", "Y", "Z"]);
     expect(await read("B/A.md")).toContain("column: Doing");
-    expect(await read("B/X.md")).toBe(before);
-    expect(await read("B/sub/Z.md")).toBe(
-      "---\ncolumn: Doing\norder: 4\ntags: []\n---\n",
-    );
   });
 
   it("reorders within a column", async () => {
@@ -320,7 +315,120 @@ describe("cards", () => {
     await write("B/One.md", "---\norder: 1\n---\n");
     await write("B/Two.md", "---\norder: 2\n---\n");
     await vault.moveCard("B", "Two", "Todo", 0);
-    expect(await read("B/Two.md")).toBe("---\norder: 1\ntags: []\n---\n");
+    expect(await read("B/Two.md")).toBe("---\norder: 0\ntags: []\n---\n");
+  });
+
+  describe("writes only the moved card when there's room", () => {
+    beforeEach(async () => {
+      for (const [name, order] of [
+        ["X", 1],
+        ["Y", 2],
+        ["Z", 5],
+      ] as const)
+        await write(
+          `B/${name}.md`,
+          `---\ncolumn: Doing\norder: ${order}\n---\n`,
+        );
+      await write("B/A.md", "---\ncolumn: Todo\n---\n");
+    });
+    const unchanged = async (...names: string[]) => {
+      for (const name of names)
+        expect(await read(`B/${name}.md`)).not.toContain("tags");
+    };
+
+    it.each([
+      ["top", 0, 0, ["A", "X", "Y", "Z"]],
+      ["bottom", 3, 6, ["X", "Y", "Z", "A"]],
+      ["first integer in a gap", 2, 3, ["X", "Y", "A", "Z"]],
+      ["midpoint between adjacent orders", 1, 1.5, ["X", "A", "Y", "Z"]],
+    ] as const)("%s", async (_, index, order, expected) => {
+      await vault.moveCard("B", "A", "Doing", index);
+      expect(await cardNames("B", "Doing")).toEqual(expected);
+      expect(await read("B/A.md")).toContain(`order: ${order}\n`);
+      await unchanged("X", "Y", "Z");
+    });
+
+    it("within a column", async () => {
+      await vault.moveCard("B", "Z", "Doing", 0);
+      expect(await cardNames("B", "Doing")).toEqual(["Z", "X", "Y"]);
+      expect(await read("B/Z.md")).toContain("order: 0\n");
+      await unchanged("X", "Y");
+    });
+
+    it("keeps the moved card's order if it already fits", async () => {
+      await write("B/A.md", "---\ncolumn: Todo\norder: 4\n---\n");
+      await vault.moveCard("B", "A", "Doing", 2);
+      expect(await read("B/A.md")).toContain("order: 4\n");
+    });
+
+    it("into an empty column", async () => {
+      await vault.moveCard("B", "X", "Done", 0);
+      expect(await read("B/X.md")).toContain("order: 1\n");
+    });
+
+    it("after the last ordered card, ahead of unordered ones", async () => {
+      await write("B/Loose.md", "---\ncolumn: Doing\n---\n");
+      await vault.moveCard("B", "A", "Doing", 3);
+      expect(await cardNames("B", "Doing")).toEqual([
+        "X",
+        "Y",
+        "Z",
+        "A",
+        "Loose",
+      ]);
+      expect(await read("B/A.md")).toContain("order: 6\n");
+      await unchanged("X", "Y", "Z", "Loose");
+    });
+  });
+
+  describe("renumbers the column when there's no room", () => {
+    const orders = async (column: string) =>
+      Promise.all(
+        (await cardNames("B", column)).map(async (n) => [
+          n,
+          (await read(`B/${n}.md`)).match(/order: (.*)/)?.[1],
+        ]),
+      );
+
+    it("between cards with equal orders", async () => {
+      await write("B/X.md", "---\ncolumn: Doing\norder: 1\n---\n");
+      await write("B/Y.md", "---\ncolumn: Doing\norder: 1\n---\n");
+      await write("B/Z.md", "---\ncolumn: Doing\norder: 2\n---\n");
+      await vault.createCard("B", "Todo", { name: "A" });
+      await vault.moveCard("B", "A", "Doing", 1);
+      expect(await orders("Doing")).toEqual([
+        ["X", "1"],
+        ["A", "2"],
+        ["Y", "3"],
+        ["Z", "4"],
+      ]);
+      // X was already 1, so it isn't rewritten.
+      expect(await read("B/X.md")).toBe("---\ncolumn: Doing\norder: 1\n---\n");
+    });
+
+    it("among unordered cards", async () => {
+      await write("B/X.md", "---\ncolumn: Doing\n---\n");
+      await write("B/Y.md", "---\ncolumn: Doing\n---\n");
+      await vault.createCard("B", "Todo", { name: "A" });
+      await vault.moveCard("B", "A", "Doing", 1);
+      expect(await orders("Doing")).toEqual([
+        ["X", "1"],
+        ["A", "2"],
+        ["Y", "3"],
+      ]);
+    });
+
+    it("once midpoints pass 3 decimal places", async () => {
+      await write("B/X.md", "---\ncolumn: Doing\norder: 1\n---\n");
+      await write("B/Y.md", "---\ncolumn: Doing\norder: 1.125\n---\n");
+      await vault.createCard("B", "Todo", { name: "A" });
+      await vault.moveCard("B", "A", "Doing", 1);
+      expect(await orders("Doing")).toEqual([
+        ["X", "1"],
+        ["A", "2"],
+        ["Y", "3"],
+      ]);
+    });
   });
 
   it("fixes an unknown column when the card is dropped somewhere", async () => {
@@ -520,10 +628,12 @@ describe("updatedAt", () => {
 
   it("is bumped for a card moved to another column, but not for cards renumbered around it", async () => {
     await vault.createCard("B", "Doing", { name: "X" });
+    await vault.createCard("B", "Doing", { name: "Y" });
+    await vault.updateCard("B", "Y", { props: { order: 1 } }); // a tie with X forces a renumber
     at("10:30:00");
-    await vault.moveCard("B", "A", "Doing", 0);
-    expect(await read("B/X.md")).toContain("order: 2"); // renumbered...
-    expect(await updatedAt("B/X.md")).toBe("2026-11-03T10:00:00"); // ...but not bumped
+    await vault.moveCard("B", "A", "Doing", 1);
+    expect(await read("B/Y.md")).toContain("order: 3"); // renumbered...
+    expect(await updatedAt("B/Y.md")).toBe("2026-11-03T10:00:00"); // ...but not bumped
     expect(await updatedAt("B/A.md")).toBe("2026-11-03T10:30:00");
   });
 
