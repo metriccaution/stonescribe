@@ -1,10 +1,10 @@
 ---
 tags:
   - feature
-column: Backlog
+column: Done
 created: 2026-11-09T17:05:05
 updatedAt: 2026-11-09T18:51:33
-order: 3
+order: -3
 ---
 Editing large bodies of text is awkward in a small modal, it would be good to have a view for a bigger editor - though as a toggle, or a link to another screen, rather than replacing the current view with a bigger one.
 
@@ -29,6 +29,6 @@ Add an **expand** button (⤢) to the modal header that switches to a full-windo
 
 ## Done when
 
-- [ ] Expand/collapse toggle on the card modal, with no loss of unsaved edits
-- [ ] Full view shows editor and preview side by side, stacking on narrow screens
-- [ ] Full view is addressable by URL
+- [x] Expand/collapse toggle on the card modal, with no loss of unsaved edits
+- [x] Full view shows editor and preview side by side, stacking on narrow screens
+- [x] Full view is addressable by URL

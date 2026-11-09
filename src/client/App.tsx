@@ -20,6 +20,10 @@ export function App() {
   const [openCard, setOpenCard] = useState<string | null>(() =>
     params().get("card"),
   );
+  // The open card's full-window editor; only meaningful while a card is open.
+  const [fullView, setFullView] = useState(
+    () => params().get("view") === "full",
+  );
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dragging = useRef(false);
@@ -59,9 +63,16 @@ export function App() {
     const query = new URLSearchParams({
       board: selected,
       ...(openCard && { card: openCard }),
+      ...(openCard && fullView && { view: "full" }),
     });
     history.replaceState(null, "", `?${query}`);
-  }, [selected, openCard]);
+  }, [selected, openCard, fullView]);
+
+  const closeCard = useCallback(() => {
+    setOpenCard(null);
+    setFullView(false);
+  }, []);
+  const toggleFullView = useCallback(() => setFullView((v) => !v), []);
 
   // Live updates when notes change on disk (e.g. edited in another tool). Deferred during drags.
   useEffect(() => {
@@ -105,7 +116,7 @@ export function App() {
               value={selected ?? ""}
               onChange={(e) => {
                 setSelected(e.target.value);
-                setOpenCard(null);
+                closeCard();
               }}
               aria-label="Board"
             >
@@ -181,7 +192,9 @@ export function App() {
             key={card.name}
             board={board}
             card={card}
-            onClose={() => setOpenCard(null)}
+            full={fullView}
+            onToggleFull={toggleFullView}
+            onClose={closeCard}
             onChanged={reload}
             onError={showError}
           />
