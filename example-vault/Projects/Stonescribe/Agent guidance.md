@@ -1,10 +1,10 @@
 ---
 tags:
   - docs
-column: Backlog
+column: Done
 created: 2026-11-09T15:51:55
-updatedAt: 2026-11-09T16:55:14
-order: 2
+updatedAt: 2026-11-09T19:12:00
+order: -2
 ---
 Would putting agent-specific guidance into how boards work be useful?
 
@@ -30,5 +30,5 @@ Write a short, self-contained block that can be pasted into a project's `CLAUDE.
 
 ## Done when
 
-- [ ] Copy-pasteable guidance block written and linked from the README
-- [ ] This repo's own `CLAUDE.md` uses it to point at `example-vault/Projects/Stonescribe/`
+- [x] Copy-pasteable guidance block written and linked from the README
+- [x] This repo's own `CLAUDE.md` uses it to point at `example-vault/Projects/Stonescribe/`

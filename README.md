@@ -111,6 +111,22 @@ Notes are linked with `[[wikilinks]]`. The format is shared by Obsidian, Foam, L
 - **In the app:** a link to a card opens it, even on another board. A link to any other note shows its path on hover, and links to notes that don't exist are dimmed.
 - **Renames update links:** renaming a card rewrites `[[Old]]`, `[[Old|alias]]`, `[[Old#heading]]` and path-qualified links across the vault. Moving a card between columns doesn't touch the file's name or location, so every link keeps working.
 
+## Agent Guidance
+
+Tasks are tracked in [Stonescribe](https://github.com/metriccaution/stonescribe) kanban boards inside the vault at `<vault folder>`. There is no database: boards are folders of plain markdown notes, and all state lives in their YAML frontmatter, so edit the files directly.
+
+- **Finding boards:** a board is any folder that directly holds a note with `kanban: board` in its frontmatter (the board note). A vault can hold many boards. Boards don't nest: a `kanban: board` note below a board's folder is just part of that board. Dot-folders like `.obsidian/` are ignored.
+- **The board note**'s `columns` list holds the only valid column names for that board. It is never a card.
+- **Cards** are the other `.md` notes in a board's folder or any sub-folder. If the board note sets `defaultColumn`, every such note is a card, and one without `column` sits in that column. Otherwise only notes with a `column` property are cards, and the rest are ordinary notes.
+- Card names and wikilinks are shared across the whole vault, not per board.
+- **Read the board:** group cards by `column`, then sort by `order`, lowest first; cards without `order` come last.
+- **New card:** create `<Name>.md` in the board's `defaultDirectory` if set, otherwise the board folder. Set `column`. Names must be unique across the whole vault (case-insensitive), so check first. Omit `order`, `created` and `updatedAt`.
+- **Move a card:** change only its `column`. Never move or rename the file to change column.
+- **Reorder:** set `order` on the moved card only, e.g. one less than the top card's to put it first. Any number works, including negatives and decimals.
+- `tags` is a YAML list without `#`. `due` is `YYYY-MM-DDTHH:MM:SS`, midnight meaning "due that day".
+- Other frontmatter is preserved, so it's safe to add your own.
+- `- [ ]` checklists in the body show as progress on the card.
+
 ## Development
 
 For development, run `npm run dev` (uses `./example-vault`; set `STONESCRIBE_VAULT` to point it elsewhere). This starts the API with reload-on-change and the Vite dev server on <http://localhost:5173>.
