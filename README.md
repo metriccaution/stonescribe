@@ -122,3 +122,7 @@ npm run typecheck
 
 `src/server/vault.ts` holds all the filesystem logic, `src/server/app.ts` is the HTTP API, and
 `src/client/` is the React UI.
+
+## Issue tracking
+
+This repo's issues live in the example vault, dogfooding Stonescribe itself. Each card in [`example-vault/Projects/Stonescribe/`](example-vault/Projects/Stonescribe/) is an issue, with columns defined in [`Stonescribe.md`](example-vault/Projects/Stonescribe/Stonescribe.md). Run `npm run dev` to view them as a board, or edit the markdown files directly. To raise an issue, add a note to that folder.
