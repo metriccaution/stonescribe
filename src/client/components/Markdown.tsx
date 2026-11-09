@@ -9,7 +9,10 @@ interface WikiLinks {
   openCard: (ref: NoteRef) => void;
 }
 
-export const WikiLinkContext = createContext<WikiLinks>({ resolve: () => undefined, openCard: () => {} });
+export const WikiLinkContext = createContext<WikiLinks>({
+  resolve: () => undefined,
+  openCard: () => {},
+});
 
 const SCHEME = "wikilink:";
 
@@ -20,33 +23,51 @@ const SCHEME = "wikilink:";
  */
 export function Markdown({ source }: { source: string }) {
   const links = useContext(WikiLinkContext);
-  const withLinks = source.replace(/!?\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, target: string, alias?: string) => {
-    const label = (alias ?? target).replace(/[[\]]/g, "");
-    return `[${label}](<${SCHEME}${encodeURIComponent(target)}>)`;
-  });
+  const withLinks = source.replace(
+    /!?\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
+    (_m, target: string, alias?: string) => {
+      const label = (alias ?? target).replace(/[[\]]/g, "");
+      return `[${label}](<${SCHEME}${encodeURIComponent(target)}>)`;
+    },
+  );
 
   return (
     <div className="markdown">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        urlTransform={(url) => (url.startsWith(SCHEME) ? url : defaultUrlTransform(url))}
+        urlTransform={(url) =>
+          url.startsWith(SCHEME) ? url : defaultUrlTransform(url)
+        }
         components={{
           a({ href, children }) {
             if (!href?.startsWith(SCHEME)) {
-              return <a href={href} target="_blank" rel="noreferrer">{children}</a>;
+              return (
+                <a href={href} target="_blank" rel="noreferrer">
+                  {children}
+                </a>
+              );
             }
             // "Folder/Note#Heading" → "Note"
-            const target = decodeURIComponent(href.slice(SCHEME.length)).split(/[#^]/)[0]!;
+            const target = decodeURIComponent(href.slice(SCHEME.length)).split(
+              /[#^]/,
+            )[0]!;
             const ref = links.resolve(target.split("/").pop()!);
             if (ref?.card) {
               return (
-                <button className="wikilink" onClick={() => links.openCard(ref)} title={ref.path}>
+                <button
+                  className="wikilink"
+                  onClick={() => links.openCard(ref)}
+                  title={ref.path}
+                >
                   {children}
                 </button>
               );
             }
             return (
-              <span className={`wikilink ${ref ? "note" : "missing"}`} title={ref ? ref.path : `No note named "${target}"`}>
+              <span
+                className={`wikilink ${ref ? "note" : "missing"}`}
+                title={ref ? ref.path : `No note named "${target}"`}
+              >
                 {children}
               </span>
             );

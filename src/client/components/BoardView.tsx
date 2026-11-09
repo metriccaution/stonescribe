@@ -10,12 +10,16 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useMemo, useState } from "react";
 import { formatDateTime, type Issue } from "../../shared/schema";
 import type { Board, Card, Column } from "../../shared/types";
-import { summaryText } from "../../shared/markdown";
 import { api, cssColor } from "../api";
 import { InlineInput } from "./InlineInput";
 
@@ -34,9 +38,17 @@ const COLUMN_PREFIX = "column:";
 type Layout = Record<string, string[]>;
 
 const layoutOf = (board: Board): Layout =>
-  Object.fromEntries(board.columns.map((c) => [c.name, c.cards.map((card) => card.name)]));
+  Object.fromEntries(
+    board.columns.map((c) => [c.name, c.cards.map((card) => card.name)]),
+  );
 
-export function BoardView({ board, onChanged, onError, onOpenCard, onDraggingChange }: Props) {
+export function BoardView({
+  board,
+  onChanged,
+  onError,
+  onOpenCard,
+  onDraggingChange,
+}: Props) {
   const [layout, setLayout] = useState<Layout>(() => layoutOf(board));
   const [drag, setDrag] = useState<{ card: string; from: string } | null>(null);
   const [addingColumn, setAddingColumn] = useState(false);
@@ -47,11 +59,17 @@ export function BoardView({ board, onChanged, onError, onOpenCard, onDraggingCha
   }, [board, drag]);
 
   const cards = useMemo(
-    () => new Map(board.columns.flatMap((c) => c.cards.map((card) => [card.name, card] as const))),
+    () =>
+      new Map(
+        board.columns.flatMap((c) =>
+          c.cards.map((card) => [card.name, card] as const),
+        ),
+      ),
     [board],
   );
-  const tagColors = board.props.tagColors;
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
 
   const containerOf = (id: string): string | undefined =>
     id.startsWith(COLUMN_PREFIX)
@@ -109,7 +127,7 @@ export function BoardView({ board, onChanged, onError, onOpenCard, onDraggingCha
 
     const originalIndex = layoutOf(board)[origin.from]!.indexOf(id);
     if (column === origin.from && index === originalIndex) return;
-    run(api.moveCard(board.path, origin.from, id, column, index));
+    run(api.moveCard(board.path, id, column, index));
   }
 
   function moveColumn(name: string, delta: number) {
@@ -142,12 +160,15 @@ export function BoardView({ board, onChanged, onError, onOpenCard, onDraggingCha
             column={column}
             cardNames={layout[column.name] ?? []}
             cards={cards}
-            tagColors={tagColors}
             isFirst={i === 0}
             isLast={i === board.columns.length - 1}
             onOpenCard={onOpenCard}
-            onAddCard={(name) => run(api.createCard(board.path, column.name, name))}
-            onRename={(name) => run(api.updateColumn(board.path, column.name, { name }))}
+            onAddCard={(name) =>
+              run(api.createCard(board.path, column.name, name))
+            }
+            onRename={(name) =>
+              run(api.updateColumn(board.path, column.name, { name }))
+            }
             onMove={(delta) => moveColumn(column.name, delta)}
             onDelete={() => {
               if (confirm(`Delete the empty column "${column.name}"?`)) {
@@ -174,7 +195,7 @@ export function BoardView({ board, onChanged, onError, onOpenCard, onDraggingCha
         </div>
       </div>
       <DragOverlay>
-        {draggedCard && <CardTile card={draggedCard} tagColors={tagColors} overlay />}
+        {draggedCard && <CardTile card={draggedCard} overlay />}
       </DragOverlay>
     </DndContext>
   );
@@ -184,7 +205,6 @@ interface ColumnProps {
   column: Column;
   cardNames: string[];
   cards: Map<string, Card>;
-  tagColors: Record<string, string>;
   isFirst: boolean;
   isLast: boolean;
   onOpenCard: (card: string) => void;
@@ -195,18 +215,14 @@ interface ColumnProps {
 }
 
 function ColumnView(props: ColumnProps) {
-  const { column, cardNames, cards, tagColors } = props;
+  const { column, cardNames, cards } = props;
   const { setNodeRef } = useDroppable({ id: COLUMN_PREFIX + column.name });
   const [adding, setAdding] = useState(false);
   const [renaming, setRenaming] = useState(false);
 
-  const { limit } = column.props;
-  const overLimit = limit !== undefined && cardNames.length > limit;
-  const accent = cssColor(column.props.color);
-
   return (
-    <section className="column" style={accent ? { borderTopColor: accent } : undefined}>
-      <header className="column-header" title={summaryText(column.description) || undefined}>
+    <section className="column">
+      <header className="column-header">
         {renaming ? (
           <InlineInput
             initial={column.name}
@@ -219,35 +235,65 @@ function ColumnView(props: ColumnProps) {
         ) : (
           <h2 onDoubleClick={() => setRenaming(true)}>{column.name}</h2>
         )}
-        <span className={`count${overLimit ? " over" : ""}`}>
-          {cardNames.length}
-          {limit !== undefined && ` / ${limit}`}
-        </span>
-        <IssueBadge issues={column.issues} file={`${column.name}/${column.name}.md`} />
+        <span className="count">{cardNames.length}</span>
+        {column.isDefault && (
+          <span
+            className="default-marker"
+            title="Default column: cards without a column property show here"
+          >
+            ★
+          </span>
+        )}
         <div className="column-actions">
-          <button className="icon" title="Move left" disabled={props.isFirst} onClick={() => props.onMove(-1)}>
+          <button
+            className="icon"
+            title="Move left"
+            disabled={props.isFirst}
+            onClick={() => props.onMove(-1)}
+          >
             ←
           </button>
-          <button className="icon" title="Move right" disabled={props.isLast} onClick={() => props.onMove(1)}>
+          <button
+            className="icon"
+            title="Move right"
+            disabled={props.isLast}
+            onClick={() => props.onMove(1)}
+          >
             →
           </button>
-          <button className="icon" title="Rename" onClick={() => setRenaming(true)}>
+          <button
+            className="icon"
+            title="Rename"
+            onClick={() => setRenaming(true)}
+          >
             ✎
           </button>
-          {cardNames.length === 0 && (
-            <button className="icon" title="Delete column" onClick={props.onDelete}>
+          {cardNames.length === 0 && !(props.isFirst && props.isLast) && (
+            <button
+              className="icon"
+              title="Delete column"
+              onClick={props.onDelete}
+            >
               ✕
             </button>
           )}
         </div>
       </header>
 
-      <SortableContext id={column.name} items={cardNames} strategy={verticalListSortingStrategy}>
+      <SortableContext
+        id={column.name}
+        items={cardNames}
+        strategy={verticalListSortingStrategy}
+      >
         <div ref={setNodeRef} className="cards">
           {cardNames.map((name) => {
             const card = cards.get(name);
             return card ? (
-              <SortableCard key={name} card={card} tagColors={tagColors} onOpen={() => props.onOpenCard(name)} />
+              <SortableCard
+                key={name}
+                card={card}
+                onOpen={() => props.onOpenCard(name)}
+              />
             ) : null;
           })}
         </div>
@@ -271,12 +317,23 @@ function ColumnView(props: ColumnProps) {
   );
 }
 
-function SortableCard({ card, tagColors, onOpen }: { card: Card; tagColors: Record<string, string>; onOpen: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.name });
+function SortableCard({ card, onOpen }: { card: Card; onOpen: () => void }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: card.name });
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+      }}
       {...attributes}
       {...listeners}
       onClick={onOpen}
@@ -285,12 +342,12 @@ function SortableCard({ card, tagColors, onOpen }: { card: Card; tagColors: Reco
         else listeners?.onKeyDown?.(e);
       }}
     >
-      <CardTile card={card} tagColors={tagColors} />
+      <CardTile card={card} />
     </div>
   );
 }
 
-function CardTile({ card, tagColors, overlay }: { card: Card; tagColors: Record<string, string>; overlay?: boolean }) {
+function CardTile({ card, overlay }: { card: Card; overlay?: boolean }) {
   const { tags, due } = card.props;
   const dueInfo = due && describeDue(due);
   const tasks = [...card.body.matchAll(/^\s*[-*] \[( |x|X)\]/gm)];
@@ -300,14 +357,18 @@ function CardTile({ card, tagColors, overlay }: { card: Card; tagColors: Record<
     <article className={`card${overlay ? " overlay" : ""}`}>
       <div className="card-title">
         <h3>{card.name}</h3>
-        <IssueBadge issues={card.issues} file={`${card.name}.md`} />
+        <IssueBadge issues={card.issues} file={card.path} />
       </div>
       {(tags.length > 0 || due || tasks.length > 0) && (
         <div className="card-meta">
           {tags.map((tag) => (
-            <TagChip key={tag} tag={tag} color={tagColors[tag]} />
+            <TagChip key={tag} tag={tag} />
           ))}
-          {dueInfo && <span className={`due${dueInfo.overdue ? " overdue" : ""}`}>Due {dueInfo.label}</span>}
+          {dueInfo && (
+            <span className={`due${dueInfo.overdue ? " overdue" : ""}`}>
+              Due {dueInfo.label}
+            </span>
+          )}
           {tasks.length > 0 && (
             <span className="progress">
               ☑ {done}/{tasks.length}
@@ -332,7 +393,13 @@ function describeDue(due: string): { label: string; overdue: boolean } {
 }
 
 /** Flags notes whose frontmatter doesn't match the schema. Hover for details. */
-export function IssueBadge({ issues, file }: { issues: Issue[]; file: string }) {
+export function IssueBadge({
+  issues,
+  file,
+}: {
+  issues: Issue[];
+  file: string;
+}) {
   if (issues.length === 0) return null;
   const detail = `${file} has invalid properties:\n${issues.map((i) => `• ${i.message}`).join("\n")}`;
   return (
@@ -342,8 +409,8 @@ export function IssueBadge({ issues, file }: { issues: Issue[]; file: string }) 
   );
 }
 
-export function TagChip({ tag, color }: { tag: string; color: string | undefined }) {
-  const c = cssColor(color);
+export function TagChip({ tag }: { tag: string }) {
+  const c = cssColor(undefined);
   return (
     <span className="tag" style={c ? { color: c, borderColor: c } : undefined}>
       #{tag}

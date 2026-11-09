@@ -1,8 +1,10 @@
 ---
 kanban: board
-tagColors:
-  bug: red
-  feature: blue
-  docs: green
+columns:
+  - Backlog
+  - Doing
+  - Done
+defaultColumn: Backlog
 ---
+
 Building the kanban app itself. See [[Design notes]].

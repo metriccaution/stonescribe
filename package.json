@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n api,web -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
-    "dev:api": "tsx watch src/server/index.ts",
+    "dev:api": "tsx watch src/server/index.ts ${STONESCRIBE_VAULT:-./example-vault}",
     "dev:web": "vite",
     "build": "vite build && tsc -p tsconfig.server.json",
     "start": "node dist/server/server/index.js",

@@ -3,8 +3,11 @@ import { stripFencedBlocks, summaryText } from "./markdown";
 
 describe("stripFencedBlocks", () => {
   it("removes blocks of the listed languages and keeps the rest", () => {
-    const src = "Intro\n\n```base\nviews:\n  - type: table\n```\n\n```ts\nconst x = 1;\n```\nOutro";
-    expect(stripFencedBlocks(src, ["base"])).toBe("Intro\n\n\n```ts\nconst x = 1;\n```\nOutro");
+    const src =
+      "Intro\n\n```base\nviews:\n  - type: table\n```\n\n```ts\nconst x = 1;\n```\nOutro";
+    expect(stripFencedBlocks(src, ["base"])).toBe(
+      "Intro\n\n\n```ts\nconst x = 1;\n```\nOutro",
+    );
   });
 
   it("matches the closing fence by marker and length", () => {

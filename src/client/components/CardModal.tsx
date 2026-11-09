@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { cardSchema, SchemaError, validatePatch, type CardProps } from "../../shared/schema";
+import {
+  cardSchema,
+  SchemaError,
+  validatePatch,
+  type CardProps,
+} from "../../shared/schema";
 import type { Board, Card, PropsPatch } from "../../shared/types";
 import { api } from "../api";
 import { TagChip } from "./BoardView";
@@ -7,14 +12,13 @@ import { Markdown } from "./Markdown";
 
 interface Props {
   board: Board;
-  column: string;
   card: Card;
   onClose: () => void;
   onChanged: () => void;
   onError: (err: unknown) => void;
 }
 
-export function CardModal({ board, column, card, onClose, onChanged, onError }: Props) {
+export function CardModal({ board, card, onClose, onChanged, onError }: Props) {
   const [name, setName] = useState(card.name);
   const [tags, setTags] = useState(card.props.tags.join(" "));
   // The picker edits the date; the time part (usually midnight) is carried over unchanged.
@@ -30,8 +34,14 @@ export function CardModal({ board, column, card, onClose, onChanged, onError }: 
   }, [onClose]);
 
   // Validate with the same schema the server enforces, so problems show before saving.
-  const patch = useMemo((): { props?: PropsPatch<CardProps>; error?: string } => {
-    const tagList = tags.split(/[,\s]+/).filter(Boolean).map((t) => t.replace(/^#/, ""));
+  const patch = useMemo((): {
+    props?: PropsPatch<CardProps>;
+    error?: string;
+  } => {
+    const tagList = tags
+      .split(/[,\s]+/)
+      .filter(Boolean)
+      .map((t) => t.replace(/^#/, ""));
     // Only send what was edited: an untouched field must not clear a value the form can't
     // show, such as an invalid `due` that's being preserved in `extra`.
     const props: PropsPatch<CardProps> = {};
@@ -49,7 +59,11 @@ export function CardModal({ board, column, card, onClose, onChanged, onError }: 
   async function save() {
     if (!patch.props) return;
     try {
-      await api.updateCard(board.path, column, card.name, { name: name.trim(), props: patch.props, body });
+      await api.updateCard(board.path, card.name, {
+        name: name.trim(),
+        props: patch.props,
+        body,
+      });
       onChanged();
       onClose();
     } catch (err) {
@@ -58,9 +72,12 @@ export function CardModal({ board, column, card, onClose, onChanged, onError }: 
   }
 
   async function remove() {
-    if (!confirm(`Delete "${card.name}"? This removes the file from the vault.`)) return;
+    if (
+      !confirm(`Delete "${card.name}"? This removes the file from the vault.`)
+    )
+      return;
     try {
-      await api.deleteCard(board.path, column, card.name);
+      await api.deleteCard(board.path, card.name);
       onChanged();
       onClose();
     } catch (err) {
@@ -71,7 +88,10 @@ export function CardModal({ board, column, card, onClose, onChanged, onError }: 
   const extras = Object.entries(card.extra);
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div
         className="modal"
         role="dialog"
@@ -80,17 +100,25 @@ export function CardModal({ board, column, card, onClose, onChanged, onError }: 
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) save();
         }}
       >
-        <input className="title-input" value={name} onChange={(e) => setName(e.target.value)} aria-label="Title" />
+        <input
+          className="title-input"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          aria-label="Title"
+        />
         <p className="file-path">
-          {`${board.path}/${column}/${card.name}.md`}
-          {card.props.created && ` · Created ${card.props.created.replace("T", " ")}`}
-          {card.props.updatedAt && ` · Updated ${card.props.updatedAt.replace("T", " ")}`}
+          {card.path}
+          {card.props.created &&
+            ` · Created ${card.props.created.replace("T", " ")}`}
+          {card.props.updatedAt &&
+            ` · Updated ${card.props.updatedAt.replace("T", " ")}`}
         </p>
 
         {card.issues.length > 0 && (
           <div className="issues" role="status">
-            <strong>This file has invalid properties.</strong> Saving will rewrite them in the expected form
-            where that's possible; anything else is kept as-is below.
+            <strong>This file has invalid properties.</strong> Saving will
+            rewrite them in the expected form where that's possible; anything
+            else is kept as-is below.
             <ul>
               {card.issues.map((issue) => (
                 <li key={issue.property}>{issue.message}</li>
@@ -102,11 +130,19 @@ export function CardModal({ board, column, card, onClose, onChanged, onError }: 
         <div className="fields">
           <label>
             Tags
-            <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="bug frontend" />
+            <input
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="bug frontend"
+            />
           </label>
           <label>
             Due
-            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
           </label>
         </div>
         {patch.error ? (
@@ -115,7 +151,7 @@ export function CardModal({ board, column, card, onClose, onChanged, onError }: 
           (patch.props?.tags ?? card.props.tags).length > 0 && (
             <div className="card-meta">
               {(patch.props?.tags ?? card.props.tags).map((tag) => (
-                <TagChip key={tag} tag={tag} color={board.props.tagColors[tag]} />
+                <TagChip key={tag} tag={tag} />
               ))}
             </div>
           )
@@ -126,23 +162,35 @@ export function CardModal({ board, column, card, onClose, onChanged, onError }: 
             {extras.map(([key, value]) => (
               <div key={key}>
                 <dt>{key}</dt>
-                <dd>{typeof value === "string" ? value : JSON.stringify(value)}</dd>
+                <dd>
+                  {typeof value === "string" ? value : JSON.stringify(value)}
+                </dd>
               </div>
             ))}
           </dl>
         )}
 
         <div className="body-tabs">
-          <button className={preview ? "" : "active"} onClick={() => setPreview(false)}>
+          <button
+            className={preview ? "" : "active"}
+            onClick={() => setPreview(false)}
+          >
             Edit
           </button>
-          <button className={preview ? "active" : ""} onClick={() => setPreview(true)}>
+          <button
+            className={preview ? "active" : ""}
+            onClick={() => setPreview(true)}
+          >
             Preview
           </button>
         </div>
         {preview ? (
           <div className="body-preview">
-            {body.trim() ? <Markdown source={body} /> : <p className="muted">Empty</p>}
+            {body.trim() ? (
+              <Markdown source={body} />
+            ) : (
+              <p className="muted">Empty</p>
+            )}
           </div>
         ) : (
           <textarea

@@ -25,7 +25,11 @@ export function parseNote(raw: string): Note {
  * `body`. Keys whose values are unchanged are left untouched in the YAML source, so comments,
  * quoting and key order written by Obsidian or by hand survive the edit.
  */
-export function writeNote(raw: string, frontmatter: Frontmatter, body?: string): string {
+export function writeNote(
+  raw: string,
+  frontmatter: Frontmatter,
+  body?: string,
+): string {
   const match = FENCE.exec(raw);
   const parsed = parseDocument(match?.[1] ?? "");
   const current: unknown = parsed.toJS();

@@ -15,7 +15,9 @@ export interface Issue {
 
 export class SchemaError extends Error {}
 
-type Parsed<T> = { ok: true; value: T } | { ok: false; error: string; fallback?: T };
+type Parsed<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: string; fallback?: T };
 
 interface Field<T> {
   parse(value: unknown): Parsed<T>;
@@ -24,25 +26,39 @@ interface Field<T> {
 /** Required properties declare a default; optional ones don't. */
 export type SchemaFor<P> = {
   [K in keyof P]-?: Field<Exclude<P[K], undefined>> &
-    (undefined extends P[K] ? { default?: undefined } : { default: () => P[K] });
+    (undefined extends P[K]
+      ? { default?: undefined }
+      : { default: () => P[K] });
 };
 
 // ---------------------------------------------------------------------------------------------
 // Field types
 
 const ok = <T>(value: T): Parsed<T> => ({ ok: true, value });
-const fail = <T>(error: string, fallback?: T): Parsed<T> => ({ ok: false, error, fallback });
+const fail = <T>(error: string, fallback?: T): Parsed<T> => ({
+  ok: false,
+  error,
+  fallback,
+});
 
 /** Tags are non-empty, contain no whitespace or commas, and are written without a leading "#". */
 const TAG = /^[^\s#,][^\s,]*$/;
 
 const tagList: Field<string[]> = {
   parse(value) {
-    if (Array.isArray(value) && value.every((t) => typeof t === "string" && TAG.test(t))) {
+    if (
+      Array.isArray(value) &&
+      value.every((t) => typeof t === "string" && TAG.test(t))
+    ) {
       return ok(value as string[]);
     }
-    const error = "must be a list of tags (text without spaces or commas, no leading #)";
-    const items = Array.isArray(value) ? value : typeof value === "string" ? value.split(/[,\s]+/) : [value];
+    const error =
+      "must be a list of tags (text without spaces or commas, no leading #)";
+    const items = Array.isArray(value)
+      ? value
+      : typeof value === "string"
+        ? value.split(/[,\s]+/)
+        : [value];
     const coerced = items
       .filter((t) => typeof t === "string" || typeof t === "number")
       .map((t) => String(t).replace(/^#+/, "").trim())
@@ -71,7 +87,14 @@ const dateTime: Field<string> = {
 function isValidDateTime(value: string): boolean {
   const m = DATE_TIME.exec(value);
   if (!m) return false;
-  const [y, mo, d, h, mi, s] = m.slice(1).map(Number) as [number, number, number, number, number, number];
+  const [y, mo, d, h, mi, s] = m.slice(1).map(Number) as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
   // Round-trip through Date to reject values it would silently roll over, like Feb 30.
   const date = new Date(Date.UTC(y, mo - 1, d, h, mi, s));
   return (
@@ -95,33 +118,46 @@ export function formatDateTime(date: Date): string {
 
 const finiteNumber: Field<number> = {
   parse: (value) =>
-    typeof value === "number" && Number.isFinite(value) ? ok(value) : fail("must be a number"),
+    typeof value === "number" && Number.isFinite(value)
+      ? ok(value)
+      : fail("must be a number"),
 };
 
 const positiveInteger: Field<number> = {
   parse: (value) =>
-    typeof value === "number" && Number.isInteger(value) && value > 0 ? ok(value) : fail("must be a whole number above 0"),
+    typeof value === "number" && Number.isInteger(value) && value > 0
+      ? ok(value)
+      : fail("must be a whole number above 0"),
 };
 
 const nonEmptyString: Field<string> = {
-  parse: (value) => (typeof value === "string" && value.trim() ? ok(value) : fail("must be non-empty text")),
+  parse: (value) =>
+    typeof value === "string" && value.trim()
+      ? ok(value)
+      : fail("must be non-empty text"),
 };
 
 const stringMap: Field<Record<string, string>> = {
   parse(value) {
-    const isMap = typeof value === "object" && value !== null && !Array.isArray(value);
+    const isMap =
+      typeof value === "object" && value !== null && !Array.isArray(value);
     if (isMap && Object.values(value).every((v) => typeof v === "string")) {
       return ok(value as Record<string, string>);
     }
     return fail(
       "must be a map of names to text values",
-      isMap ? Object.fromEntries(Object.entries(value).filter(([, v]) => typeof v === "string")) : undefined,
+      isMap
+        ? Object.fromEntries(
+            Object.entries(value).filter(([, v]) => typeof v === "string"),
+          )
+        : undefined,
     );
   },
 };
 
 const literal = <T extends string>(expected: T): Field<T> => ({
-  parse: (value) => (value === expected ? ok(expected) : fail(`must be "${expected}"`)),
+  parse: (value) =>
+    value === expected ? ok(expected) : fail(`must be "${expected}"`),
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -129,6 +165,8 @@ const literal = <T extends string>(expected: T): Field<T> => ({
 
 export interface CardProps {
   tags: string[];
+  /** Name of the column the card is in. Cards without one are in the board's default column. */
+  column?: string;
   created?: string;
   /** Set by the app whenever the card is edited, renamed or moved to another column. */
   updatedAt?: string;
@@ -138,32 +176,77 @@ export interface CardProps {
 
 export const cardSchema: SchemaFor<CardProps> = {
   tags: { ...tagList, default: () => [] },
+  column: nonEmptyString,
   created: dateTime,
   updatedAt: dateTime,
   due: dateTime,
   order: finiteNumber,
 };
 
-export interface ColumnProps {
-  order?: number;
-  color?: string;
-  limit?: number;
-}
+/**
+ * A folder path relative to the board's folder, using "/" (e.g. "Tasks" or "Work/Cards"). It
+ * can't be absolute, climb out with "..", or go into a dot-folder, where cards would be ignored.
+ */
+const boardDirectory: Field<string> = {
+  parse(value) {
+    const error =
+      'must be a folder inside the board, like "Tasks" (not absolute, no "..", no dot-folders)';
+    if (typeof value !== "string" || !value.trim()) return fail(error);
+    if (/^([\\/]|[A-Za-z]:)/.test(value)) return fail(error);
+    const segments = value.split(/[\\/]/).filter((s) => s !== "" && s !== ".");
+    if (segments.some((s) => s.startsWith("."))) return fail(error);
+    return ok(value);
+  },
+};
 
-export const columnSchema: SchemaFor<ColumnProps> = {
-  order: finiteNumber,
-  color: nonEmptyString,
-  limit: positiveInteger,
+export const DEFAULT_COLUMNS = ["Todo", "Doing", "Done"];
+
+/** A flat list of unique, non-empty column names, so any frontmatter editor can change it. */
+const columnList: Field<string[]> = {
+  parse(value) {
+    const items = Array.isArray(value)
+      ? value
+      : typeof value === "string"
+        ? value.split(",")
+        : [];
+    const valid: string[] = [];
+    for (const item of items) {
+      const name =
+        typeof item === "string" || typeof item === "number"
+          ? String(item).trim()
+          : "";
+      if (name && !valid.includes(name)) valid.push(name);
+    }
+    const isValid =
+      Array.isArray(value) &&
+      valid.length === value.length &&
+      value.every((item, i) => item === valid[i]);
+    if (isValid && valid.length > 0) return ok(valid);
+    return fail(
+      "must be a list of unique, non-empty column names",
+      valid.length > 0 ? valid : undefined,
+    );
+  },
 };
 
 export interface BoardProps {
   kanban: "board";
-  tagColors: Record<string, string>;
+  /** Column names, in display order. */
+  columns: string[];
+  /**
+   * Where notes without a `column` property go. When it isn't set, those notes aren't cards, so
+   * the board's folder can hold other notes too.
+   */
+  defaultColumn?: string;
+  /** Folder, relative to the board's, where new cards are created. Defaults to the board's folder. */
+  defaultDirectory?: string;
 }
 
 export const boardSchema: SchemaFor<BoardProps> = {
   kanban: { ...literal("board"), default: () => "board" as const },
-  tagColors: { ...stringMap, default: () => ({}) },
+  columns: { ...columnList, default: () => [...DEFAULT_COLUMNS] },
+  defaultColumn: nonEmptyString,
+  defaultDirectory: boardDirectory,
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -176,7 +259,10 @@ export interface Read<P> {
   issues: Issue[];
 }
 
-export function readProps<P>(schema: SchemaFor<P>, frontmatter: Frontmatter): Read<P> {
+export function readProps<P>(
+  schema: SchemaFor<P>,
+  frontmatter: Frontmatter,
+): Read<P> {
   const props: Record<string, unknown> = {};
   const extra: Frontmatter = {};
   const issues: Issue[] = [];
@@ -184,7 +270,10 @@ export function readProps<P>(schema: SchemaFor<P>, frontmatter: Frontmatter): Re
   for (const [key, value] of Object.entries(frontmatter)) {
     if (!(key in schema)) extra[key] = value;
   }
-  for (const [key, field] of Object.entries(schema) as [string, Field<unknown> & { default?: () => unknown }][]) {
+  for (const [key, field] of Object.entries(schema) as [
+    string,
+    Field<unknown> & { default?: () => unknown },
+  ][]) {
     const value = frontmatter[key];
     if (value === undefined || value === null) {
       if (field.default) props[key] = field.default();
@@ -210,13 +299,18 @@ export function readProps<P>(schema: SchemaFor<P>, frontmatter: Frontmatter): Re
  * Validates a partial update. `null` clears an optional property; required properties can't be
  * cleared. Unknown keys are rejected so typos don't silently become new properties.
  */
-export function validatePatch<P>(schema: SchemaFor<P>, patch: unknown): Partial<P> {
+export function validatePatch<P>(
+  schema: SchemaFor<P>,
+  patch: unknown,
+): Partial<P> {
   if (typeof patch !== "object" || patch === null || Array.isArray(patch)) {
     throw new SchemaError("Properties must be an object");
   }
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(patch)) {
-    const field = (schema as Record<string, Field<unknown> & { default?: () => unknown }>)[key];
+    const field = (
+      schema as Record<string, Field<unknown> & { default?: () => unknown }>
+    )[key];
     if (!field) throw new SchemaError(`Unknown property "${key}"`);
     if (value === null || value === undefined) {
       if (field.default) throw new SchemaError(`"${key}" is required`);
@@ -235,9 +329,14 @@ export function validatePatch<P>(schema: SchemaFor<P>, patch: unknown): Partial<
  * A key present in `props` (even as `undefined`, meaning "cleared") wins over the same key in
  * `extra`, so setting or clearing a property also replaces an invalid value kept from disk.
  */
-export function toFrontmatter<P extends object>(props: P, extra: Frontmatter): Frontmatter {
+export function toFrontmatter<P extends object>(
+  props: P,
+  extra: Frontmatter,
+): Frontmatter {
   const out: Frontmatter = {};
-  for (const [key, value] of Object.entries(props)) if (value !== undefined) out[key] = value;
-  for (const [key, value] of Object.entries(extra)) if (!(key in props)) out[key] = value;
+  for (const [key, value] of Object.entries(props))
+    if (value !== undefined) out[key] = value;
+  for (const [key, value] of Object.entries(extra))
+    if (!(key in props)) out[key] = value;
   return out;
 }

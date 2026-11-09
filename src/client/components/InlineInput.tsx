@@ -8,7 +8,12 @@ interface Props {
 }
 
 /** A single-line input that submits on Enter and cancels on Escape or blur when empty. */
-export function InlineInput({ initial = "", placeholder, onSubmit, onCancel }: Props) {
+export function InlineInput({
+  initial = "",
+  placeholder,
+  onSubmit,
+  onCancel,
+}: Props) {
   const [value, setValue] = useState(initial);
   const submit = () => (value.trim() ? onSubmit(value.trim()) : onCancel());
   return (

@@ -20,7 +20,12 @@
   --c-gray: #75726a;
 
   color-scheme: light;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: 14px;
   line-height: 1.45;
 }
@@ -216,9 +221,10 @@ code {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
-.count.over {
-  color: var(--danger);
-  font-weight: 600;
+.default-marker {
+  color: var(--muted);
+  font-size: 11px;
+  cursor: help;
 }
 .column-actions {
   margin-left: auto;

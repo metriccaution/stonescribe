@@ -8,7 +8,9 @@ import { VaultWatcher } from "./watch.js";
 
 const vaultPath = process.argv[2] ?? process.env.STONESCRIBE_VAULT;
 if (!vaultPath) {
-  console.error("Usage: stonescribe <path-to-vault>  (or set STONESCRIBE_VAULT)");
+  console.error(
+    "Usage: stonescribe <path-to-vault>  (or set STONESCRIBE_VAULT)",
+  );
   process.exit(1);
 }
 if (!existsSync(vaultPath)) {
@@ -23,12 +25,19 @@ const vault = new Vault(vaultPath);
 const app = createApp(vault, new VaultWatcher(vault.root));
 
 // In production, serve the built client from dist/client.
-const clientDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../client");
+const clientDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../client",
+);
 if (existsSync(clientDir)) {
   app.use(express.static(clientDir));
-  app.get(/^(?!\/api\/).*/, (_req, res) => res.sendFile(path.join(clientDir, "index.html")));
+  app.get(/^(?!\/api\/).*/, (_req, res) =>
+    res.sendFile(path.join(clientDir, "index.html")),
+  );
 }
 
 app.listen(port, host, () => {
-  console.log(`Stonescribe serving vault ${vault.root} on http://${host}:${port}`);
+  console.log(
+    `Stonescribe serving vault ${vault.root} on http://${host}:${port}`,
+  );
 });

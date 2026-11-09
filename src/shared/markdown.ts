@@ -18,7 +18,9 @@ export function stripFencedBlocks(source: string, languages: string[]): string {
       out.push(line);
       continue;
     }
-    const close = new RegExp(`^ {0,3}${fence.marker[0]}{${fence.marker.length},}\\s*$`).test(line);
+    const close = new RegExp(
+      `^ {0,3}${fence.marker[0]}{${fence.marker.length},}\\s*$`,
+    ).test(line);
     if (!fence.skip) out.push(line);
     if (close) fence = null;
   }
@@ -26,4 +28,5 @@ export function stripFencedBlocks(source: string, languages: string[]): string {
 }
 
 /** A folder note's body as shown in a board or column summary. */
-export const summaryText = (body: string) => stripFencedBlocks(body, ["base"]).trim();
+export const summaryText = (body: string) =>
+  stripFencedBlocks(body, ["base"]).trim();

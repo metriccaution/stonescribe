@@ -11,11 +11,15 @@ const params = () => new URLSearchParams(location.search);
 
 export function App() {
   const [boards, setBoards] = useState<BoardSummary[] | null>(null);
-  const [selected, setSelected] = useState<string | null>(() => params().get("board"));
+  const [selected, setSelected] = useState<string | null>(() =>
+    params().get("board"),
+  );
   const [board, setBoard] = useState<Board | null>(null);
   const [notes, setNotes] = useState<NoteRef[]>([]);
   // Card names are unique across the vault, so the name alone identifies the open card.
-  const [openCard, setOpenCard] = useState<string | null>(() => params().get("card"));
+  const [openCard, setOpenCard] = useState<string | null>(() =>
+    params().get("card"),
+  );
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dragging = useRef(false);
@@ -27,12 +31,19 @@ export function App() {
 
   const reload = useCallback(async () => {
     try {
-      const [list, index] = await Promise.all([api.listBoards(), api.listNotes()]);
+      const [list, index] = await Promise.all([
+        api.listBoards(),
+        api.listNotes(),
+      ]);
       setBoards(list);
       setNotes(index);
-      const target = selected && list.some((b) => b.path === selected) ? selected : list[0]?.path ?? null;
+      // A board at the vault root has the path "", so compare against null, not truthiness.
+      const target =
+        selected !== null && list.some((b) => b.path === selected)
+          ? selected
+          : (list[0]?.path ?? null);
       if (target !== selected) setSelected(target);
-      setBoard(target ? await api.getBoard(target) : null);
+      setBoard(target !== null ? await api.getBoard(target) : null);
     } catch (err) {
       showError(err);
     }
@@ -44,8 +55,11 @@ export function App() {
 
   // Keep the board and open card in the URL so they survive refreshes and can be bookmarked.
   useEffect(() => {
-    if (!selected) return;
-    const query = new URLSearchParams({ board: selected, ...(openCard && { card: openCard }) });
+    if (selected === null) return;
+    const query = new URLSearchParams({
+      board: selected,
+      ...(openCard && { card: openCard }),
+    });
     history.replaceState(null, "", `?${query}`);
   }, [selected, openCard]);
 
@@ -77,8 +91,9 @@ export function App() {
     };
   }, [notes]);
 
-  const column = openCard ? board?.columns.find((c) => c.cards.some((card) => card.name === openCard)) : undefined;
-  const card = column?.cards.find((c) => c.name === openCard);
+  const card = openCard
+    ? board?.columns.flatMap((c) => c.cards).find((c) => c.name === openCard)
+    : undefined;
 
   return (
     <WikiLinkContext.Provider value={wikiLinks}>
@@ -96,12 +111,12 @@ export function App() {
             >
               {boards.map((b) => (
                 <option key={b.path} value={b.path}>
-                  {b.path}
+                  {b.path || b.name}
                 </option>
               ))}
             </select>
           )}
-          {board && <IssueBadge issues={board.issues} file={`${board.path}/${board.name}.md`} />}
+          {board && <IssueBadge issues={board.issues} file={board.note} />}
           {creating ? (
             <InlineInput
               placeholder="Board name"
@@ -151,7 +166,8 @@ export function App() {
             <div className="empty">
               <p>No boards found in this vault.</p>
               <p className="muted">
-                A board is any folder with a self-named note whose frontmatter has <code>kanban: board</code>.
+                A board is any folder holding a note whose frontmatter has{" "}
+                <code>kanban: board</code>.
               </p>
               <button className="primary" onClick={() => setCreating(true)}>
                 Create a board
@@ -160,11 +176,10 @@ export function App() {
           )
         )}
 
-        {board && column && card && (
+        {board && card && (
           <CardModal
             key={card.name}
             board={board}
-            column={column.name}
             card={card}
             onClose={() => setOpenCard(null)}
             onChanged={reload}

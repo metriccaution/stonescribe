@@ -9,9 +9,16 @@ export class VaultWatcher {
   constructor(root: string, debounceMs = 150) {
     this.watcher = watch(root, { recursive: true }, (_event, filename) => {
       // Ignore .obsidian/ (workspace.json changes constantly) and other dot-folders.
-      if (filename && filename.split(/[\\/]/).some((part) => part.startsWith("."))) return;
+      if (
+        filename &&
+        filename.split(/[\\/]/).some((part) => part.startsWith("."))
+      )
+        return;
       clearTimeout(this.timer);
-      this.timer = setTimeout(() => this.listeners.forEach((fn) => fn()), debounceMs);
+      this.timer = setTimeout(
+        () => this.listeners.forEach((fn) => fn()),
+        debounceMs,
+      );
     });
   }
 
